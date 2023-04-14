@@ -10,10 +10,14 @@ import javax.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.paypay.Exception.BadRequestException;
 import com.paypay.constant.VariableConstant;
+import com.paypay.dto.Request.InquiryAccountBankRequest;
 import com.paypay.dto.Request.TransactionExchangeRequest;
 import com.paypay.dto.Response.Response;
 import com.paypay.dto.Response.ResponseExchange;
@@ -38,8 +42,19 @@ public class TransactionImpl {
     @Autowired
     private VariableConstant variableConstant;
 
+    @Autowired
+    private RestTemplate restTemplate;
+
     @Value("${limit.transaction.month}")
     private BigDecimal limitThreshold;
+
+    public TransactionData inquiryTransaction(String vaNumber) throws Exception {
+        TransactionData transactionDb = transactionRepository.findByVaNumber(vaNumber);
+        if (transactionDb == null) {
+            throw new BadRequestException("Data Transaksi tidak tersedia");
+        }
+        return transactionDb;
+    }
 
     @Transactional(rollbackOn = Exception.class)
     public Response TransactionExchange(TransactionExchangeRequest transactionExchangeRequest) throws Exception {
@@ -61,7 +76,7 @@ public class TransactionImpl {
                 thresholdDb = new TransactionThreshold();
                 thresholdDb.setNic(transactionExchangeRequest.getNic());
                 thresholdDb.setUsedAmount(transactionExchangeRequest.getAmount2());
-            }else{
+            } else {
                 thresholdDb.setUsedAmount(thresholdDb.getUsedAmount().add(transactionExchangeRequest.getAmount2()));
             }
             thresholdDb.setCreatedDate(now);
@@ -77,6 +92,13 @@ public class TransactionImpl {
         transactionData.setVaNumber(vaNumber);
         transactionData.setCreatedDate(now);
         transactionData.setLastUpdate(now);
+        InquiryAccountBankRequest inquiryAccountBankRequest = new InquiryAccountBankRequest();
+        inquiryAccountBankRequest.setAccountNumber(transactionData.getDestinationAccount());
+
+        Response inquiryAccount = inquiryAccount(inquiryAccountBankRequest);
+        if(inquiryAccount == null){
+            
+        }
         transactionRepository.save(transactionData);
         ResponseExchange resExchange = new ResponseExchange();
         resExchange.setMessage("Success");
@@ -138,4 +160,22 @@ public class TransactionImpl {
         // Jika tanggal sama, increment sequence number
         return sequenceNumber + 1;
     }
+
+    public Response inquiryAccount(InquiryAccountBankRequest request) throws Exception {
+        String url = "http://localhost:8080/utilities-service/bank/inquiry-rekening";
+
+        HttpEntity<Object> entity = new HttpEntity<Object>(request);
+        Response response = null;
+        try {
+            response = restTemplate.exchange(url, HttpMethod.POST, entity, Response.class, 1).getBody();
+            System.out.println("Response Inquiry Account:" + response);
+            return response;
+        } catch (Exception e) {
+            // TODO: handle exception
+            System.out.println("Error Inquiry Rekening: " + e.getMessage());
+            throw new BadRequestException("Inquiry Rekening gagal");
+        }
+
+    }
+
 }

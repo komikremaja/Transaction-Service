@@ -14,4 +14,6 @@ import com.paypay.model.TransactionData;
 public interface TransactionRepository extends JpaRepository<TransactionData, BigDecimal> {
     @Query("SELECT DISTINCT t FROM TransactionData t WHERE t.bankName=:bankName AND DATE(t.createdDate)=CURDATE() ORDER BY 1 DESC")
     List<TransactionData> findVaNumberSequence(@Param("bankName") String bankName);
+
+    TransactionData findByVaNumber(String vaNumber);
 }

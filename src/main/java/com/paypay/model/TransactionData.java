@@ -37,10 +37,10 @@ public class TransactionData {
     private String currencyPair;
 
     @Column(name = "amount1")
-    private String amount1;
+    private BigDecimal amount1;
 
     @Column(name = "amount2")
-    private String amount2;
+    private BigDecimal amount2;
 
     @Column(name = "type_transaction")
     private String typeTransaction;

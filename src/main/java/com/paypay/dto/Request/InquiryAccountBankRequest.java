@@ -7,4 +7,5 @@ public class InquiryAccountBankRequest {
     
     private String accountNumber;
     private String bankName;
+    private String accountType;
 }
