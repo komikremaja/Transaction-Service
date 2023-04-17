@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.paypay.dto.Request.ReconInquiryPaymentStatusRequest;
 import com.paypay.dto.Request.TransactionExchangeRequest;
 import com.paypay.dto.Response.Response;
 import com.paypay.model.TransactionData;
@@ -33,5 +34,22 @@ public class TransactionController {
     public TransactionData inquiryTransaction(@PathVariable(name = "vaNumber") String vaNumber) throws Exception {
         return transactionImpl.inquiryTransaction(vaNumber);
     }
+    
+    @PostMapping("/recon/payment-status")
+    public Response reconPayment(@RequestBody ReconInquiryPaymentStatusRequest request) throws Exception {
+        return transactionImpl.reconPaymentStatus(request);
+    }
+
+    @GetMapping("/history-transaction/list/{nic}")
+    public Response inquiryHistoryTransaction(@PathVariable(name = "nic") String nic) throws Exception {
+        return response = transactionImpl.historyTransactionList(nic);
+    }
+
+    @GetMapping("/history-transaction/{vaNumber}")
+    public Response inquiryHistoryDetailTransaction(@PathVariable(name = "vaNumber") String vaNumber) throws Exception {
+        return response = transactionImpl.historyTransactionSpecific(vaNumber);
+    }
+    
+    
     
 }

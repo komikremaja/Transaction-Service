@@ -16,4 +16,7 @@ public interface TransactionRepository extends JpaRepository<TransactionData, Bi
     List<TransactionData> findVaNumberSequence(@Param("bankName") String bankName);
 
     TransactionData findByVaNumber(String vaNumber);
+
+    @Query("SELECT t FROM TransactionData t WHERE t.nic=:nic ORDER BY 1 ASC")
+    List<TransactionData> findHistoryTransactionlist(@Param("nic") String nic);
 }

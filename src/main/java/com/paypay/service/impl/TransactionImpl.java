@@ -1,6 +1,7 @@
 package com.paypay.service.impl;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -15,12 +16,16 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paypay.Exception.BadRequestException;
 import com.paypay.constant.VariableConstant;
 import com.paypay.dto.Request.InquiryAccountBankRequest;
+import com.paypay.dto.Request.ReconInquiryPaymentStatusRequest;
 import com.paypay.dto.Request.TransactionExchangeRequest;
 import com.paypay.dto.Response.Response;
 import com.paypay.dto.Response.ResponseExchange;
+import com.paypay.dto.Response.ResponseHistoryTransactionDetail;
+import com.paypay.dto.Response.ResponsePaymentStatusRecon;
 import com.paypay.model.TransactionData;
 import com.paypay.model.TransactionThreshold;
 import com.paypay.repository.TransactionRepository;
@@ -47,6 +52,9 @@ public class TransactionImpl {
 
     @Value("${limit.transaction.month}")
     private BigDecimal limitThreshold;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public TransactionData inquiryTransaction(String vaNumber) throws Exception {
         TransactionData transactionDb = transactionRepository.findByVaNumber(vaNumber);
@@ -96,8 +104,8 @@ public class TransactionImpl {
         inquiryAccountBankRequest.setAccountNumber(transactionData.getDestinationAccount());
 
         Response inquiryAccount = inquiryAccount(inquiryAccountBankRequest);
-        if(inquiryAccount == null){
-            
+        if (inquiryAccount == null) {
+
         }
         transactionRepository.save(transactionData);
         ResponseExchange resExchange = new ResponseExchange();
@@ -176,6 +184,70 @@ public class TransactionImpl {
             throw new BadRequestException("Inquiry Rekening gagal");
         }
 
+    }
+
+    public Response reconPaymentStatus(ReconInquiryPaymentStatusRequest request) throws Exception {
+        String url = "http://localhost:8484/payment/inquiry/payment-status";
+
+        HttpEntity<Object> entity = new HttpEntity<Object>(request);
+        LocalDateTime now = LocalDateTime.now();
+        ResponsePaymentStatusRecon responsePaymentStatus = null;
+        TransactionData transactionEntity = transactionRepository.findByVaNumber(request.getVaNumber());
+        if (request.getVaNumber() == null) {
+            throw new BadRequestException("Data Transaksi tidak tersedia");
+        }
+        try {
+            response = restTemplate
+                    .exchange(url, HttpMethod.POST, entity, Response.class, 1).getBody();
+            String data = objectMapper.writeValueAsString(response.getData());
+            responsePaymentStatus = objectMapper.readValue(data, ResponsePaymentStatusRecon.class);
+            LocalDateTime dateTransaction = transactionEntity.getCreatedDate();
+            Duration duration = Duration.between(dateTransaction, now);
+            if (responsePaymentStatus.getPaymentStatus().equalsIgnoreCase("1")) {
+                if (duration.toMinutes() > 10) {
+                    transactionEntity.setTransactionStatus("2");
+                    transactionEntity.setLastUpdate(now);
+                }
+            } else {
+                transactionEntity.setTransactionStatus(responsePaymentStatus.getPaymentStatus());
+                transactionEntity.setLastUpdate(now);
+            }
+            transactionRepository.save(transactionEntity);
+            System.out.println("Response Reconpayment Status" + response);
+            return response = new Response(variableConstant.getSTATUS_OK(), "Recon berhasil", responsePaymentStatus);
+        } catch (Exception e) {
+            // TODO: handle exception
+            System.out.println("Error recon payment status " + e.getMessage());
+            throw new BadRequestException("recon gagal");
+        }
+
+    }
+
+    public Response historyTransactionList(String nic) throws Exception {
+        List<TransactionData> listTransactionDataDb = transactionRepository.findHistoryTransactionlist(nic);
+        String responseHistoryTransaction = "";
+        if(listTransactionDataDb.size() == 0){
+            responseHistoryTransaction = "History transaction kosong";
+            response = new Response(variableConstant.getSTATUS_OK(), "Transaction History Kosong", responseHistoryTransaction);
+        }else{
+            response = new Response(variableConstant.getSTATUS_OK(), "success", listTransactionDataDb);
+        }
+        return response;
+    }
+
+    public Response historyTransactionSpecific(String vaNumber) throws Exception {
+        TransactionData transactionDataDb = transactionRepository.findByVaNumber(vaNumber);
+        String responseHistoryTransaction = "";
+        ResponseHistoryTransactionDetail responseHistoryTransactionDetail = new ResponseHistoryTransactionDetail();
+        if(transactionDataDb == null){
+            responseHistoryTransaction = "History transaction kosong";
+            response = new Response(variableConstant.getSTATUS_OK(), "Transaction History Kosong", responseHistoryTransaction);
+        }else{
+            responseHistoryTransactionDetail = mapper.map(transactionDataDb, ResponseHistoryTransactionDetail.class);
+            responseHistoryTransactionDetail.setExpiredDate(transactionDataDb.getCreatedDate().plusMinutes(10));
+            response = new Response(variableConstant.getSTATUS_OK(), "success", responseHistoryTransactionDetail);
+        }
+        return response;
     }
 
 }
