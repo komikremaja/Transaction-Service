@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.paypay.dto.Request.ReconInquiryPaymentStatusRequest;
 import com.paypay.dto.Request.TransactionExchangeRequest;
 import com.paypay.dto.Response.Response;
+import com.paypay.dto.Response.ResponseInquiryTransaksi;
 import com.paypay.model.TransactionData;
 import com.paypay.service.impl.TransactionImpl;
 
@@ -31,7 +32,7 @@ public class TransactionController {
     }
     
     @GetMapping("/inquiry/transaction/{vaNumber}")
-    public TransactionData inquiryTransaction(@PathVariable(name = "vaNumber") String vaNumber) throws Exception {
+    public ResponseInquiryTransaksi inquiryTransaction(@PathVariable(name = "vaNumber") String vaNumber) throws Exception {
         return transactionImpl.inquiryTransaction(vaNumber);
     }
     

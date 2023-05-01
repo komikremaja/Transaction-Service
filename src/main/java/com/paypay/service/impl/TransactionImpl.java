@@ -1,6 +1,7 @@
 package com.paypay.service.impl;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,6 +26,7 @@ import com.paypay.dto.Request.TransactionExchangeRequest;
 import com.paypay.dto.Response.Response;
 import com.paypay.dto.Response.ResponseExchange;
 import com.paypay.dto.Response.ResponseHistoryTransactionDetail;
+import com.paypay.dto.Response.ResponseInquiryTransaksi;
 import com.paypay.dto.Response.ResponsePaymentStatusRecon;
 import com.paypay.model.TransactionData;
 import com.paypay.model.TransactionThreshold;
@@ -56,12 +58,17 @@ public class TransactionImpl {
     @Autowired
     private ObjectMapper objectMapper;
 
-    public TransactionData inquiryTransaction(String vaNumber) throws Exception {
+    public ResponseInquiryTransaksi inquiryTransaction(String vaNumber) throws Exception {
         TransactionData transactionDb = transactionRepository.findByVaNumber(vaNumber);
         if (transactionDb == null) {
             throw new BadRequestException("Data Transaksi tidak tersedia");
         }
-        return transactionDb;
+        ResponseInquiryTransaksi response = new ResponseInquiryTransaksi();
+        transactionDb.setAmount1(transactionDb.getAmount1().setScale(2, RoundingMode.HALF_UP));
+        transactionDb.setAmount2(transactionDb.getAmount2().setScale(2, RoundingMode.HALF_UP));
+
+        response = mapper.map(transactionDb, ResponseInquiryTransaksi.class);
+        return response;
     }
 
     @Transactional(rollbackOn = Exception.class)
@@ -78,7 +85,10 @@ public class TransactionImpl {
         if (!currencys[1].equalsIgnoreCase("IDR")) {
             throw new BadRequestException("Currency hanya bisa IDR");
         }
-        if (transactionExchangeRequest.getTypeTransaction().equalsIgnoreCase("B")) {
+        if (transactionExchangeRequest.getTypeTransaction().equalsIgnoreCase("S")) {
+            if(!transactionExchangeRequest.getAccountType().equals(currencys[0])){
+                throw new BadRequestException("Tipe Akun tujuan tidak sesuai");
+            }
             TransactionThreshold thresholdDb = transactionThresholdRepo.findByNic(transactionExchangeRequest.getNic());
             if (thresholdDb == null) {
                 thresholdDb = new TransactionThreshold();
@@ -93,6 +103,10 @@ public class TransactionImpl {
                 throw new BadRequestException("Limit Transaksi perbulan sudah melebih batas");
             }
             transactionThresholdRepo.save(thresholdDb);
+        }else{
+            if(!transactionExchangeRequest.getAccountType().equals(currencys[1])){
+                throw new BadRequestException("Tipe Akun tujuan tidak sesuai");
+            }
         }
         String vaNumber = generateVaNumber(transactionExchangeRequest.getBankName());
         TransactionData transactionData = mapper.map(transactionExchangeRequest, TransactionData.class);
@@ -102,6 +116,9 @@ public class TransactionImpl {
         transactionData.setLastUpdate(now);
         InquiryAccountBankRequest inquiryAccountBankRequest = new InquiryAccountBankRequest();
         inquiryAccountBankRequest.setAccountNumber(transactionData.getDestinationAccount());
+        inquiryAccountBankRequest.setAccountType(transactionExchangeRequest.getAccountType());
+        inquiryAccountBankRequest.setBankName(transactionExchangeRequest.getBankAccount());
+        
 
         Response inquiryAccount = inquiryAccount(inquiryAccountBankRequest);
         if (inquiryAccount == null) {
