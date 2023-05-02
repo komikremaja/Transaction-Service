@@ -39,6 +39,9 @@ public class ResponseInquiryTransaksi {
     private String vaNumber;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime expiredTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdDate;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

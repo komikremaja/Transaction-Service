@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,7 +51,12 @@ public class TransactionController {
     public Response inquiryHistoryDetailTransaction(@PathVariable(name = "vaNumber") String vaNumber) throws Exception {
         return response = transactionImpl.historyTransactionSpecific(vaNumber);
     }
-    
+
+    @PutMapping("/update-expired")
+    public Response updateTransactionExpired() throws Exception {
+        response = transactionImpl.updateTransactionExpired();
+        return response;
+    }
     
     
 }

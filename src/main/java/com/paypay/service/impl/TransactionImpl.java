@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.transaction.Transactional;
@@ -66,8 +67,9 @@ public class TransactionImpl {
         ResponseInquiryTransaksi response = new ResponseInquiryTransaksi();
         transactionDb.setAmount1(transactionDb.getAmount1().setScale(2, RoundingMode.HALF_UP));
         transactionDb.setAmount2(transactionDb.getAmount2().setScale(2, RoundingMode.HALF_UP));
-
+        
         response = mapper.map(transactionDb, ResponseInquiryTransaksi.class);
+        response.setExpiredTime(transactionDb.getCreatedDate().plusMinutes(10));
         return response;
     }
 
@@ -249,6 +251,24 @@ public class TransactionImpl {
         }else{
             response = new Response(variableConstant.getSTATUS_OK(), "success", listTransactionDataDb);
         }
+        return response;
+    }
+
+    public Response updateTransactionExpired() throws Exception {
+        List<TransactionData> listTransactionDataDb = transactionRepository.findTransactionExpireds();
+        List<TransactionData> listTransactionTemp = new ArrayList<>();
+        Integer dataUpdate = 0;
+        for(int i = 0; i< listTransactionDataDb.size(); i++){
+            TransactionData singleTransaction = new TransactionData();
+            singleTransaction = mapper.map(listTransactionDataDb.get(i), TransactionData.class);
+            singleTransaction.setTransactionStatus("2");
+            listTransactionTemp.add(singleTransaction);
+            dataUpdate += 1;
+        }
+        transactionRepository.saveAll(listTransactionTemp);
+
+        response = new Response(variableConstant.getSTATUS_OK(), "Success Update", "Data Success Update: " + dataUpdate);
+
         return response;
     }
 
