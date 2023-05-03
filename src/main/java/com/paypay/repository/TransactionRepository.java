@@ -17,7 +17,7 @@ public interface TransactionRepository extends JpaRepository<TransactionData, Bi
 
     TransactionData findByVaNumber(String vaNumber);
 
-    @Query("SELECT t FROM TransactionData t WHERE t.nic=:nic ORDER BY 1 ASC")
+    @Query("SELECT t FROM TransactionData t WHERE t.nic=:nic ORDER BY 1 DESC")
     List<TransactionData> findHistoryTransactionlist(@Param("nic") String nic);
 
     @Query(value = "SELECT * FROM transaction_data WHERE transaction_status=1 AND created_date < DATE_SUB(NOW(), INTERVAL 10 MINUTE)", nativeQuery = true)

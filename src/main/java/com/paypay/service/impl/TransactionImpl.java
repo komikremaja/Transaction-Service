@@ -18,6 +18,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paypay.Exception.BadRequestException;
 import com.paypay.constant.VariableConstant;
@@ -67,7 +68,7 @@ public class TransactionImpl {
         ResponseInquiryTransaksi response = new ResponseInquiryTransaksi();
         transactionDb.setAmount1(transactionDb.getAmount1().setScale(2, RoundingMode.HALF_UP));
         transactionDb.setAmount2(transactionDb.getAmount2().setScale(2, RoundingMode.HALF_UP));
-        
+
         response = mapper.map(transactionDb, ResponseInquiryTransaksi.class);
         response.setExpiredTime(transactionDb.getCreatedDate().plusMinutes(10));
         return response;
@@ -88,7 +89,7 @@ public class TransactionImpl {
             throw new BadRequestException("Currency hanya bisa IDR");
         }
         if (transactionExchangeRequest.getTypeTransaction().equalsIgnoreCase("S")) {
-            if(!transactionExchangeRequest.getAccountType().equals(currencys[0])){
+            if (!transactionExchangeRequest.getAccountType().equals(currencys[0])) {
                 throw new BadRequestException("Tipe Akun tujuan tidak sesuai");
             }
             TransactionThreshold thresholdDb = transactionThresholdRepo.findByNic(transactionExchangeRequest.getNic());
@@ -105,8 +106,8 @@ public class TransactionImpl {
                 throw new BadRequestException("Limit Transaksi perbulan sudah melebih batas");
             }
             transactionThresholdRepo.save(thresholdDb);
-        }else{
-            if(!transactionExchangeRequest.getAccountType().equals(currencys[1])){
+        } else {
+            if (!transactionExchangeRequest.getAccountType().equals(currencys[1])) {
                 throw new BadRequestException("Tipe Akun tujuan tidak sesuai");
             }
         }
@@ -120,7 +121,6 @@ public class TransactionImpl {
         inquiryAccountBankRequest.setAccountNumber(transactionData.getDestinationAccount());
         inquiryAccountBankRequest.setAccountType(transactionExchangeRequest.getAccountType());
         inquiryAccountBankRequest.setBankName(transactionExchangeRequest.getBankAccount());
-        
 
         Response inquiryAccount = inquiryAccount(inquiryAccountBankRequest);
         if (inquiryAccount == null) {
@@ -236,6 +236,12 @@ public class TransactionImpl {
             return response = new Response(variableConstant.getSTATUS_OK(), "Recon berhasil", responsePaymentStatus);
         } catch (Exception e) {
             // TODO: handle exception
+            String response = e.getMessage();
+            if (response.contains("Data payment tidak ditemukan")) {
+                transactionEntity.setTransactionStatus("2");
+                transactionEntity.setLastUpdate(now);
+                transactionRepository.save(transactionEntity);
+            }
             System.out.println("Error recon payment status " + e.getMessage());
             throw new BadRequestException("recon gagal");
         }
@@ -245,10 +251,18 @@ public class TransactionImpl {
     public Response historyTransactionList(String nic) throws Exception {
         List<TransactionData> listTransactionDataDb = transactionRepository.findHistoryTransactionlist(nic);
         String responseHistoryTransaction = "";
-        if(listTransactionDataDb.size() == 0){
+
+        if (listTransactionDataDb.size() == 0) {
             responseHistoryTransaction = "History transaction kosong";
-            response = new Response(variableConstant.getSTATUS_OK(), "Transaction History Kosong", responseHistoryTransaction);
-        }else{
+            response = new Response(variableConstant.getSTATUS_OK(), "Transaction History Kosong",
+                    responseHistoryTransaction);
+        } else {
+            for (int i = 0; i < listTransactionDataDb.size(); i++) {
+                listTransactionDataDb.get(i)
+                        .setAmount1(listTransactionDataDb.get(i).getAmount1().setScale(2, RoundingMode.HALF_UP));
+                listTransactionDataDb.get(i)
+                        .setAmount2(listTransactionDataDb.get(i).getAmount2().setScale(2, RoundingMode.HALF_UP));
+            }
             response = new Response(variableConstant.getSTATUS_OK(), "success", listTransactionDataDb);
         }
         return response;
@@ -258,7 +272,7 @@ public class TransactionImpl {
         List<TransactionData> listTransactionDataDb = transactionRepository.findTransactionExpireds();
         List<TransactionData> listTransactionTemp = new ArrayList<>();
         Integer dataUpdate = 0;
-        for(int i = 0; i< listTransactionDataDb.size(); i++){
+        for (int i = 0; i < listTransactionDataDb.size(); i++) {
             TransactionData singleTransaction = new TransactionData();
             singleTransaction = mapper.map(listTransactionDataDb.get(i), TransactionData.class);
             singleTransaction.setTransactionStatus("2");
@@ -267,7 +281,8 @@ public class TransactionImpl {
         }
         transactionRepository.saveAll(listTransactionTemp);
 
-        response = new Response(variableConstant.getSTATUS_OK(), "Success Update", "Data Success Update: " + dataUpdate);
+        response = new Response(variableConstant.getSTATUS_OK(), "Success Update",
+                "Data Success Update: " + dataUpdate);
 
         return response;
     }
@@ -276,11 +291,16 @@ public class TransactionImpl {
         TransactionData transactionDataDb = transactionRepository.findByVaNumber(vaNumber);
         String responseHistoryTransaction = "";
         ResponseHistoryTransactionDetail responseHistoryTransactionDetail = new ResponseHistoryTransactionDetail();
-        if(transactionDataDb == null){
+        if (transactionDataDb == null) {
             responseHistoryTransaction = "History transaction kosong";
-            response = new Response(variableConstant.getSTATUS_OK(), "Transaction History Kosong", responseHistoryTransaction);
-        }else{
+            response = new Response(variableConstant.getSTATUS_OK(), "Transaction History Kosong",
+                    responseHistoryTransaction);
+        } else {
             responseHistoryTransactionDetail = mapper.map(transactionDataDb, ResponseHistoryTransactionDetail.class);
+            responseHistoryTransactionDetail
+                    .setAmount1(transactionDataDb.getAmount1().setScale(2, RoundingMode.HALF_UP));
+            responseHistoryTransactionDetail
+                    .setAmount2(transactionDataDb.getAmount2().setScale(2, RoundingMode.HALF_UP));
             responseHistoryTransactionDetail.setExpiredDate(transactionDataDb.getCreatedDate().plusMinutes(10));
             response = new Response(variableConstant.getSTATUS_OK(), "success", responseHistoryTransactionDetail);
         }
