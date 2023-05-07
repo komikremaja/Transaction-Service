@@ -111,7 +111,7 @@ public class TransactionImpl {
                 throw new BadRequestException("Tipe Akun tujuan tidak sesuai");
             }
         }
-        String vaNumber = generateVaNumber(transactionExchangeRequest.getBankName());
+        String vaNumber = generateVaNumber(transactionExchangeRequest.getPaymentMethod());
         TransactionData transactionData = mapper.map(transactionExchangeRequest, TransactionData.class);
         transactionData.setTransactionStatus("1");
         transactionData.setVaNumber(vaNumber);

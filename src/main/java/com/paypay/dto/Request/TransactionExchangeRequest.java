@@ -38,6 +38,8 @@ public class TransactionExchangeRequest {
     @NotEmpty(message = "Field must be fill")
     private String nic;
     private String transactionStatus;
+    @NotEmpty(message = "Field must be fill")
+    private String paymentMethod;
     private String vaNumber;
     private LocalDateTime createdDate;
     private LocalDate lastUpdate;
