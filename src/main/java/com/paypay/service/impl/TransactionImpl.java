@@ -117,6 +117,7 @@ public class TransactionImpl {
         transactionData.setVaNumber(vaNumber);
         transactionData.setCreatedDate(now);
         transactionData.setLastUpdate(now);
+        transactionData.setPaymentMethod(transactionExchangeRequest.getPaymentMethod());
         InquiryAccountBankRequest inquiryAccountBankRequest = new InquiryAccountBankRequest();
         inquiryAccountBankRequest.setAccountNumber(transactionData.getDestinationAccount());
         inquiryAccountBankRequest.setAccountType(transactionExchangeRequest.getAccountType());

@@ -62,6 +62,9 @@ public class TransactionData {
 
     @Column(name = "va_number")
     private String vaNumber;
+    
+    @Column(name = "payment_method")
+    private String paymentMethod;
 
     @Column(name = "created_date")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

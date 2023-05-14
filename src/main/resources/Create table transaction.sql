@@ -8,6 +8,7 @@ CREATE TABLE transaction_data(
     amount2 DOUBLE not null,
     type_transaction varchar(1) not null,
     rate_kurs DOUBLE not null,
+    payment_method varchar(45) not null,
     bank_name varchar(40) not null,
     comments varchar(255) not null,
     nic varchar(20) not null,
